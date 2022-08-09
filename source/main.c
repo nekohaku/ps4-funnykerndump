@@ -6,11 +6,13 @@
 
 static inline uint64_t rdmsr(uint64_t msr) {
     uint32_t low = 0, high = 0;
-    asm volatile (
+    
+    __asm__ volatile (
         "rdmsr"
         : "=a"(low), "=d"(high)
         : "c"(msr)
     );
+    
     return (((uint64_t)high) << 0x20) | ((uint64_t)low);
 }
 
@@ -21,7 +23,7 @@ int do_funnykerndump() {
   printf_notification("Kernel Base = %p", (void*)kbaseptr);
   
   for (koffs = 0; koffs < ksiz; koffs += kchunksize)
-    SckSend(DEBUG_SOCK, &kbaseptr[koffs], (int)kchunksize);
+    SckSend(DEBUG_SOCK, (char*)&kbaseptr[koffs], (int)kchunksize);
   
   printf_debug("<<<!!!EOF!!!>>>\n", (void*)kbaseptr);
   printf_notification("Kernel Dumped");
