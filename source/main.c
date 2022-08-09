@@ -17,7 +17,7 @@ static inline uint64_t rdmsr(uint64_t msr) {
 }
 
 int do_funnykerndump() {
-  uint64_t kbaseu64 = rdmsr(0xc0000082) - 0x1c0, kchunksize = 128, koffs = 0, ksiz = 60000000 + kchunksize;
+  uint64_t kbaseu64 = get_kernel_base(), kchunksize = 128, koffs = 0, ksiz = 60000000 + kchunksize;
   unsigned char* kbaseptr = (unsigned char*)kbaseu64;
   printf_debug("kbase=%p\n", (void*)kbaseptr);
   printf_notification("Kernel Base = %p", (void*)kbaseptr);
