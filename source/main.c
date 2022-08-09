@@ -17,20 +17,28 @@ static inline uint64_t rdmsr(uint64_t msr) {
 }
 
 int do_funnykerndump() {
-  uint64_t kbaseu64 = get_kernel_base(), kchunksize = 128, koffs = 0, ksiz = 60000000 + kchunksize;
+  uint64_t kbaseu64 = get_kernel_base(), kchunksize = 0x4000, koffs = 0, ksiz = kchunksize * kchunksize;
   unsigned char* kbaseptr = (unsigned char*)kbaseu64;
   printf_debug("kbase=%p\n", (void*)kbaseptr);
   printf_notification("Kernel Base = %p", (void*)kbaseptr);
   
-  for (koffs = 0; koffs < ksiz; koffs += kchunksize)
-    SckSend(DEBUG_SOCK, (char*)&kbaseptr[koffs], (int)kchunksize);
+  uint64_t *dump = mmap(NULL, kchunksize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   
-  printf_debug("<<<!!!EOF!!!>>>\n", (void*)kbaseptr);
+  for (koffs = 0; koffs < ksiz; koffs += kchunksize) {
+    get_memory_dump(kbaseu64 + koffs, dump, kchunksize);
+    SckSend(DEBUG_SOCK, (char*)dump, (int)kchunksize);
+  }
+  
+  munmap(dump, kchunksize);
+  dump = NULL;
+  
+  printf_debug("\n<<<!!!EOF!!!>>>\n", (void*)kbaseptr);
   printf_notification("Kernel Dumped");
   return 0;
 }
 
 int _main(struct thread *td) {
+  char dummy[16] = { '\0' };
   UNUSED(td);
 
   initKernel();
@@ -47,6 +55,7 @@ int _main(struct thread *td) {
   initSysUtil();
 
   printf_notification("Running funnykerndump");
+  get_firmware_string(dummy);
   do_funnykerndump();
 
 #ifdef DEBUG_SOCKET
